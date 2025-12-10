@@ -27,7 +27,8 @@ from torchvision.transforms import ToTensor
 
 
 def flush():
-    torch.cuda.empty_cache()
+    from toolkit.device import empty_cache
+    empty_cache()
     gc.collect()
 
 
@@ -253,4 +254,5 @@ class Img2ImgGenerator(BaseExtensionProcess):
             # cleanup
             del self.sd
             gc.collect()
-            torch.cuda.empty_cache()
+            from toolkit.device import empty_cache
+            empty_cache()

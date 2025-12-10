@@ -1,6 +1,6 @@
 import React from 'react';
 import { GpuInfo } from '@/types';
-import { Thermometer, Zap, Clock, HardDrive, Fan, Cpu } from 'lucide-react';
+import { Thermometer, Zap, Clock, HardDrive, Fan, Cpu, Apple } from 'lucide-react';
 
 interface GPUWidgetProps {
   gpu: GpuInfo;
@@ -19,85 +19,129 @@ export default function GPUWidget({ gpu }: GPUWidgetProps) {
     return temp < 50 ? 'text-emerald-500' : temp < 80 ? 'text-amber-500' : 'text-rose-500';
   };
 
+  const isAppleSilicon = gpu.isAppleSilicon === true;
+
   return (
     <div className="bg-gray-900 rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-800">
       <div className="bg-gray-800 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
+          {isAppleSilicon && <Apple className="w-4 h-4 text-gray-400" />}
           <h2 className="font-semibold text-gray-100">{gpu.name}</h2>
           <span className="px-2 py-0.5 bg-gray-700 rounded-full text-xs text-gray-300"># {gpu.index}</span>
         </div>
+        {isAppleSilicon && (
+          <span className="px-2 py-0.5 bg-blue-900 rounded-full text-xs text-blue-300">MPS</span>
+        )}
       </div>
 
       <div className="p-4 space-y-4">
         {/* Temperature, Fan, and Utilization Section */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Thermometer className={`w-4 h-4 ${getTemperatureColor(gpu.temperature)}`} />
-              <div>
-                <p className="text-xs text-gray-400">Temperature</p>
-                <p className={`text-sm font-medium ${getTemperatureColor(gpu.temperature)}`}>{gpu.temperature}°C</p>
+          {/* Left column - Only show temp/fan for non-Apple Silicon */}
+          {!isAppleSilicon ? (
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Thermometer className={`w-4 h-4 ${getTemperatureColor(gpu.temperature)}`} />
+                <div>
+                  <p className="text-xs text-gray-400">Temperature</p>
+                  <p className={`text-sm font-medium ${getTemperatureColor(gpu.temperature)}`}>{gpu.temperature}°C</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Fan className="w-4 h-4 text-blue-400" />
+                <div>
+                  <p className="text-xs text-gray-400">Fan Speed</p>
+                  <p className="text-sm font-medium text-blue-400">{gpu.fan.speed}%</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Fan className="w-4 h-4 text-blue-400" />
-              <div>
-                <p className="text-xs text-gray-400">Fan Speed</p>
-                <p className="text-sm font-medium text-blue-400">{gpu.fan.speed}%</p>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Apple className="w-4 h-4 text-gray-400" />
+                <div>
+                  <p className="text-xs text-gray-400">Backend</p>
+                  <p className="text-sm font-medium text-gray-200">{gpu.driverVersion}</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <HardDrive className="w-4 h-4 text-blue-400" />
+                <div>
+                  <p className="text-xs text-gray-400">Unified Memory</p>
+                  <p className="text-sm font-medium text-blue-400">{formatMemory(gpu.memory.total)}</p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Right column - GPU/Memory utilization */}
           <div>
-            <div className="flex items-center space-x-2 mb-1">
-              <Cpu className="w-4 h-4 text-gray-400" />
-              <p className="text-xs text-gray-400">GPU Load</p>
-              <span className="text-xs text-gray-300 ml-auto">{gpu.utilization.gpu}%</span>
-            </div>
-            <div className="w-full bg-gray-700 rounded-full h-1">
-              <div
-                className={`h-1 rounded-full transition-all ${getUtilizationColor(gpu.utilization.gpu)}`}
-                style={{ width: `${gpu.utilization.gpu}%` }}
-              />
-            </div>
-            <div className="flex items-center space-x-2 mb-1 mt-3">
+            {!isAppleSilicon && (
+              <>
+                <div className="flex items-center space-x-2 mb-1">
+                  <Cpu className="w-4 h-4 text-gray-400" />
+                  <p className="text-xs text-gray-400">GPU Load</p>
+                  <span className="text-xs text-gray-300 ml-auto">{gpu.utilization.gpu}%</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-1">
+                  <div
+                    className={`h-1 rounded-full transition-all ${getUtilizationColor(gpu.utilization.gpu)}`}
+                    style={{ width: `${gpu.utilization.gpu}%` }}
+                  />
+                </div>
+              </>
+            )}
+            <div className={`flex items-center space-x-2 mb-1 ${!isAppleSilicon ? 'mt-3' : ''}`}>
               <HardDrive className="w-4 h-4 text-blue-400" />
               <p className="text-xs text-gray-400">Memory</p>
-              <span className="text-xs text-gray-300 ml-auto">
-                {((gpu.memory.used / gpu.memory.total) * 100).toFixed(1)}%
-              </span>
+              {!isAppleSilicon && gpu.memory.total > 0 && (
+                <span className="text-xs text-gray-300 ml-auto">
+                  {((gpu.memory.used / gpu.memory.total) * 100).toFixed(1)}%
+                </span>
+              )}
             </div>
-            <div className="w-full bg-gray-700 rounded-full h-1">
-              <div
-                className="h-1 rounded-full bg-blue-500 transition-all"
-                style={{ width: `${(gpu.memory.used / gpu.memory.total) * 100}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {formatMemory(gpu.memory.used)} / {formatMemory(gpu.memory.total)}
-            </p>
+            {!isAppleSilicon && gpu.memory.total > 0 ? (
+              <>
+                <div className="w-full bg-gray-700 rounded-full h-1">
+                  <div
+                    className="h-1 rounded-full bg-blue-500 transition-all"
+                    style={{ width: `${(gpu.memory.used / gpu.memory.total) * 100}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {formatMemory(gpu.memory.used)} / {formatMemory(gpu.memory.total)}
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-gray-400 mt-0.5">
+                {formatMemory(gpu.memory.total)} available
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Power and Clocks Section */}
-        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-800">
-          <div className="flex items-start space-x-2">
-            <Clock className="w-4 h-4 text-purple-400" />
-            <div>
-              <p className="text-xs text-gray-400">Clock Speed</p>
-              <p className="text-sm text-gray-200">{gpu.clocks.graphics} MHz</p>
+        {/* Power and Clocks Section - Only show for non-Apple Silicon */}
+        {!isAppleSilicon && (
+          <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-800">
+            <div className="flex items-start space-x-2">
+              <Clock className="w-4 h-4 text-purple-400" />
+              <div>
+                <p className="text-xs text-gray-400">Clock Speed</p>
+                <p className="text-sm text-gray-200">{gpu.clocks.graphics} MHz</p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-2">
+              <Zap className="w-4 h-4 text-amber-400" />
+              <div>
+                <p className="text-xs text-gray-400">Power Draw</p>
+                <p className="text-sm text-gray-200">
+                  {gpu.power.draw?.toFixed(1)}W
+                  <span className="text-gray-400 text-xs"> / {gpu.power.limit?.toFixed(1) || ' ? '}W</span>
+                </p>
+              </div>
             </div>
           </div>
-          <div className="flex items-start space-x-2">
-            <Zap className="w-4 h-4 text-amber-400" />
-            <div>
-              <p className="text-xs text-gray-400">Power Draw</p>
-              <p className="text-sm text-gray-200">
-                {gpu.power.draw?.toFixed(1)}W
-                <span className="text-gray-400 text-xs"> / {gpu.power.limit?.toFixed(1) || ' ? '}W</span>
-              </p>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

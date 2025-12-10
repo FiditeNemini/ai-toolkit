@@ -134,7 +134,8 @@ class DualWanTransformer3DModel(torch.nn.Module):
                 if self.low_vram:
                     getattr(self, self._active_transformer_name).to("cpu")
                     getattr(self, t_name).to(self.device_torch)
-                    torch.cuda.empty_cache()
+                    from toolkit.device import empty_cache
+                    empty_cache()
                 self._active_transformer_name = t_name
 
         if self.transformer.device != hidden_states.device:

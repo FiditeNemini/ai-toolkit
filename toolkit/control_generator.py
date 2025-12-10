@@ -17,7 +17,8 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 def flush(garbage_collect=True):
-    torch.cuda.empty_cache()
+    from toolkit.device import empty_cache
+    empty_cache()
     if garbage_collect:
         gc.collect()
 

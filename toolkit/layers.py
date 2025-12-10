@@ -2,13 +2,14 @@ import torch
 import torch.nn as nn
 import numpy as np
 from torch.utils.checkpoint import checkpoint
+from toolkit.device import get_device
 
 
 class ReductionKernel(nn.Module):
     # Tensorflow
     def __init__(self, in_channels, kernel_size=2, dtype=torch.float32, device=None):
         if device is None:
-            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            device = get_device()
         super(ReductionKernel, self).__init__()
         self.kernel_size = kernel_size
         self.in_channels = in_channels

@@ -2,6 +2,7 @@ from torch import nn
 import torch.nn.functional as F
 import torch
 from torchvision import models
+from toolkit.device import get_device
 
 
 # device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -14,10 +15,10 @@ def tensor_size(tensor):
 
 class ContentLoss(nn.Module):
 
-    def __init__(self, single_target=False, device='cuda' if torch.cuda.is_available() else 'cpu'):
+    def __init__(self, single_target=False, device=None):
         super(ContentLoss, self).__init__()
         self.single_target = single_target
-        self.device = device
+        self.device = device if device is not None else get_device()
         self.loss = None
 
     def forward(self, stacked_input):
@@ -74,10 +75,10 @@ def convert_to_gram_matrix(inputs):
 
 class StyleLoss(nn.Module):
 
-    def __init__(self, single_target=False, device='cuda' if torch.cuda.is_available() else 'cpu'):
+    def __init__(self, single_target=False, device=None):
         super(StyleLoss, self).__init__()
         self.single_target = single_target
-        self.device = device
+        self.device = device if device is not None else get_device()
 
     def forward(self, stacked_input):
         input_dtype = stacked_input.dtype
@@ -152,10 +153,12 @@ class OutputLayer(nn.Module):
 
 def get_style_model_and_losses(
         single_target=True,  # false has 3 targets, dont remember why i added this initially, this is old code
-        device='cuda' if torch.cuda.is_available() else 'cpu',
+        device=None,
         output_layer_name=None,
         dtype=torch.float32
 ):
+    if device is None:
+        device = get_device()
     # content_layers = ['conv_4']
     # style_layers = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
     content_layers = ['conv2_2', 'conv3_2', 'conv4_2']

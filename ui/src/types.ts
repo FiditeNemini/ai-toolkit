@@ -37,6 +37,7 @@ export interface GpuInfo {
   power: GpuPower;
   clocks: GpuClocks;
   fan: GpuFan;
+  isAppleSilicon?: boolean;
 }
 
 export interface CpuInfo {
@@ -51,6 +52,7 @@ export interface CpuInfo {
 
 export interface GPUApiResponse {
   hasNvidiaSmi: boolean;
+  hasAppleSilicon?: boolean;
   gpus: GpuInfo[];
   error?: string;
 }

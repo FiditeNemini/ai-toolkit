@@ -61,6 +61,16 @@ def get_optimizer(
 
         optimizer = Adam8bit(params, lr=learning_rate, eps=1e-6, decouple=True, **optimizer_params)
     elif lower_type.endswith("8bit"):
+        # bitsandbytes is CUDA-only - check if we can use it
+        from toolkit.device import is_cuda_available
+        
+        if not is_cuda_available():
+            # Fallback to custom Adam8bit for MPS/CPU
+            print(f"WARNING: bitsandbytes {optimizer_type} requires CUDA. Falling back to custom Adam8bit implementation.")
+            from toolkit.optimizers.adam8bit import Adam8bit
+            decouple = lower_type.startswith("adamw")
+            return Adam8bit(params, lr=learning_rate, eps=1e-6, decouple=decouple, **optimizer_params)
+        
         import bitsandbytes
 
         if lower_type == "adam8bit":

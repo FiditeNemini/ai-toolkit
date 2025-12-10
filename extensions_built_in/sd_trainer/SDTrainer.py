@@ -42,7 +42,8 @@ from torchvision.transforms import functional as TF
 
 
 def flush():
-    torch.cuda.empty_cache()
+    from toolkit.device import empty_cache
+    empty_cache()
     gc.collect()
 
 
@@ -2059,7 +2060,8 @@ class SDTrainer(BaseSDTrainProcess):
             else:
                 total_loss += loss
             if len(batch_list) > 1 and self.model_config.low_vram:
-                torch.cuda.empty_cache()
+                from toolkit.device import empty_cache
+                empty_cache()
 
 
         if not self.is_grad_accumulation_step:

@@ -24,7 +24,7 @@ def _get_device_state(device: torch.device):
     if isinstance(device, str):
         device = torch.device(device)
 
-    # CPU path needs no CUDA state
+    # CPU and MPS paths need no CUDA state - use simple state
     if device.type != "cuda":
         if device not in _DEVICE_STATE:
             _DEVICE_STATE[device] = {}
@@ -106,6 +106,7 @@ def _ensure_cpu_pinned(t: Optional[torch.Tensor]) -> Optional[torch.Tensor]:
     # Don't attempt to pin quantized tensors; many backends don't support it
     if _is_quantized_tensor(t):
         return t
+    # Only pin memory if CUDA is available (MPS doesn't use pinned memory)
     if torch.cuda.is_available():
         try:
             t = t.pin_memory()
@@ -155,15 +156,16 @@ class _BouncingLinearFn(torch.autograd.Function):
             w_gpu = cpu_w.to(dev, non_blocking=True)
             return w_gpu
 
+        # Non-CUDA fallback (CPU or MPS) - no streams/events
         if device.type != "cuda":
             out = F.linear(
-                x.to("cpu"),
-                _materialize_linear_weight(weight_cpu, torch.device("cpu")),
-                bias_cpu,
+                x.to(device),
+                _materialize_linear_weight(weight_cpu, device),
+                bias_cpu.to(device) if bias_cpu is not None else None,
             )
             ctx.save_for_backward(x.to("cpu"), weight_cpu, bias_cpu)
-            ctx.device = torch.device("cpu")
-            return out.to(x.device)
+            ctx.device = device
+            return out
 
         state = _get_device_state(device)
         ts = state["transfer_stream"]
@@ -331,19 +333,20 @@ class _BouncingConv2dFn(torch.autograd.Function):
             w_gpu = cpu_w.to(dev, non_blocking=True)
             return w_gpu
 
+        # Non-CUDA fallback (CPU or MPS) - no streams/events
         if device.type != "cuda":
             out = F.conv2d(
-                x.to("cpu"),
-                _materialize_conv_weight(weight_cpu, torch.device("cpu")),
-                bias_cpu,
+                x.to(device),
+                _materialize_conv_weight(weight_cpu, device),
+                bias_cpu.to(device) if bias_cpu is not None else None,
                 stride,
                 padding,
                 dilation,
                 groups,
             )
             ctx.save_for_backward(x.to("cpu"), weight_cpu, bias_cpu)
-            ctx.meta = ("cpu", stride, padding, dilation, groups, target_dtype)
-            return out.to(x.device)
+            ctx.meta = (device, stride, padding, dilation, groups, target_dtype)
+            return out
 
         state = _get_device_state(device)
         ts = state["transfer_stream"]

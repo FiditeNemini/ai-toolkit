@@ -91,7 +91,8 @@ class BlankNetwork:
 
 
 def flush():
-    torch.cuda.empty_cache()
+    from toolkit.device import empty_cache
+    empty_cache()
     gc.collect()
 
 
@@ -468,8 +469,8 @@ class BaseModel:
 
                     if network is not None:
                         network.multiplier = gen_config.network_multiplier
-                    torch.manual_seed(gen_config.seed)
-                    torch.cuda.manual_seed(gen_config.seed)
+                    from toolkit.device import manual_seed
+                    manual_seed(gen_config.seed)
 
                     generator = torch.manual_seed(gen_config.seed)
 
@@ -661,7 +662,8 @@ class BaseModel:
 
         # clear pipeline and cache to reduce vram usage
         del pipeline
-        torch.cuda.empty_cache()
+        from toolkit.device import empty_cache
+        empty_cache()
 
         # restore training state
         torch.set_rng_state(rng_state)

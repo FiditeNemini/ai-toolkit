@@ -119,7 +119,8 @@ class BlankNetwork:
 
 
 def flush():
-    torch.cuda.empty_cache()
+    from toolkit.device import empty_cache
+    empty_cache()
     gc.collect()
 
 
@@ -1712,7 +1713,8 @@ class StableDiffusion:
         del pipeline
         if refiner_pipeline is not None:
             del refiner_pipeline
-        torch.cuda.empty_cache()
+        from toolkit.device import empty_cache
+        empty_cache()
 
         # restore training state
         torch.set_rng_state(rng_state)

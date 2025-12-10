@@ -5,6 +5,7 @@ import torch.nn as nn
 import numpy as np
 from diffusers.models.autoencoders.autoencoder_kl import AutoencoderKLOutput
 from diffusers.models.autoencoders.vae import DecoderOutput
+from toolkit.device import get_device
 
 
 class PixelMixer(nn.Module):
@@ -61,8 +62,7 @@ class AutoencoderPixelMixer(nn.Module):
         super().__init__()
         self.mixer = PixelMixer(in_channels, downscale_factor)
         self._dtype = torch.float32
-        self._device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu")
+        self._device = get_device()
         self.config = Config()
         
         if downscale_factor == 8:
@@ -189,7 +189,7 @@ if __name__ == '__main__':
     from PIL import Image
     import torchvision.transforms as transforms
     user_path = os.path.expanduser('~')
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = get_device()
     dtype = torch.float32
 
     input_path = os.path.join(user_path, "Pictures/test/test.jpg")

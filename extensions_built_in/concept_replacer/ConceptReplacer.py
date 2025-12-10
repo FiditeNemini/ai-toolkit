@@ -10,7 +10,8 @@ from jobs.process import BaseSDTrainProcess
 
 
 def flush():
-    torch.cuda.empty_cache()
+    from toolkit.device import empty_cache
+    empty_cache()
     gc.collect()
 
 
