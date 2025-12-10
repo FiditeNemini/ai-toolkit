@@ -12,27 +12,49 @@ const GpuMonitor: React.FC = () => {
   const isFetchingGpuRef = useRef(false);
 
   useEffect(() => {
+    let isMounted = true;
+    let abortController: AbortController | null = null;
+
     const fetchGpuInfo = async () => {
-      if (isFetchingGpuRef.current) {
+      if (isFetchingGpuRef.current || !isMounted) {
         return;
       }
       setLoading(true);
       isFetchingGpuRef.current = true;
-      apiClient
-        .get('/api/gpu')
-        .then(res => res.data)
-        .then(data => {
-          setGpuData(data);
+
+      // Create new abort controller for this request
+      abortController = new AbortController();
+
+      try {
+        const res = await apiClient.get('/api/gpu', { signal: abortController.signal });
+        if (isMounted) {
+          setGpuData(res.data);
           setLastUpdated(new Date());
           setError(null);
-        })
-        .catch(err => {
+        }
+      } catch (err: unknown) {
+        // Ignore abort/cancel errors completely
+        if (
+          !isMounted ||
+          (err instanceof Error && (
+            err.name === 'AbortError' ||
+            err.name === 'CanceledError' ||
+            err.message === 'canceled' ||
+            err.message.includes('cancel')
+          )) ||
+          (typeof err === 'object' && err !== null && 'code' in err && err.code === 'ERR_CANCELED')
+        ) {
+          return;
+        }
+        if (isMounted) {
           setError(`Failed to fetch GPU data: ${err instanceof Error ? err.message : String(err)}`);
-        })
-        .finally(() => {
-          isFetchingGpuRef.current = false;
+        }
+      } finally {
+        isFetchingGpuRef.current = false;
+        if (isMounted) {
           setLoading(false);
-        });
+        }
+      }
     };
 
     // Fetch immediately on component mount
@@ -41,8 +63,14 @@ const GpuMonitor: React.FC = () => {
     // Set up interval to fetch every 1 seconds
     const intervalId = setInterval(fetchGpuInfo, 1000);
 
-    // Clean up interval on component unmount
-    return () => clearInterval(intervalId);
+    // Clean up interval and abort any in-flight requests on component unmount
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+      if (abortController) {
+        abortController.abort();
+      }
+    };
   }, []);
 
   const getGridClasses = (gpuCount: number): string => {
